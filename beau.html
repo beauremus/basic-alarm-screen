@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tolerance Detector</title>
+    <script src="https://www-bd.fnal.gov/acnet/acnet-1.4.js"></script>
+    <script src="https://www-bd.fnal.gov/acnet/proto_lib-2.0.js"></script>
+    <script src="https://www-bd.fnal.gov/acnet/dpm_protocol-2.0.js"></script>
+    <script src="https://www-bd.fnal.gov/acnet/dpm-2.0.js"></script>
+    <style>
+        .device {
+            /* Prevents the need for <br>s */
+            margin-bottom: 1em;
+        }
+
+        a {
+            /* Prevents the need for <br>s */
+            display: block;
+        }
+
+        .alarm {
+            color: red;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="devices"></div>
+    <script>
+        const dpm = new DPM();
+
+        if (dpm === undefined) {
+            document.body.innerText(`DPM Error: Must use VPN on your current network`);
+            throw new Error(`DPM Error: Must use VPN on your current network`);
+        }
+
+        // Storing the devices in a list allows us to do thing functionally
+        // with the list making it simple to scale
+        const deviceList = [`B:IP111`, `B:IP112`, `M:OUTTMP`, `D:OUTTMP`, `B:IPMP02`];
+        const event = `@E,8F,H`;
+        const devicesContainer = document.querySelector(`#devices`);
+
+        const createDeviceElement = (device) => {
+            const newDeviceElement = document.createElement(`div`);
+            newDeviceElement.className = `device`;
+            newDeviceElement.id = device;
+
+            return newDeviceElement;
+        }
+
+        const createReadingElement = () => {
+            const newReadingElement = document.createElement(`div`);
+            newReadingElement.className = `reading`;
+
+            return newReadingElement;
+        }
+
+        const createLinkElement = (device, className) => {
+            const newLinkElement = document.createElement(`a`);
+            newLinkElement.className = className;
+            newLinkElement.target = `_blank`;
+
+            if (className === `dataLog`) {
+                newLinkElement.innerText = `Datalog ${device}`;
+                newLinkElement.href = `https://www-bd.fnal.gov/cgi-bin/mcr.pl?query=px&web=yes&dur=24&dev=${device}`;
+            } else if (className === `digitalStatus`) {
+                newLinkElement.innerText = `Digital Status ${device}`;
+                newLinkElement.href = `https://www-ad.fnal.gov/cgi-bin/acl.pl?acl=~kissel/acl/show.acl+dig+0+${device}`;
+            } else if (className === `alarmLimits`) {
+                newLinkElement.innerText = `Alarm Limits ${device}`;
+                newLinkElement.href = `https://www-bd.fnal.gov/cgi-bin/acl.pl?acl=print+'Min: '${device}.min++', Max: '${device}.max`;
+            }
+
+            return newLinkElement;
+        }
+
+        const deviceElements = {};
+
+        deviceList.forEach(device => {
+            const newDeviceElement = createDeviceElement(device);
+            const newReadingElement = createReadingElement();
+            const newDataLogElement = createLinkElement(device, `dataLog`);
+            const newDigitalStatusElement = createLinkElement(device, `digitalStatus`);
+            const newAlarmLimitsElement = createLinkElement(device, `alarmLimits`);
+
+            // Order matters here as we add elements to the DOM
+            newDeviceElement.appendChild(newReadingElement);
+            newDeviceElement.appendChild(newDataLogElement);
+            newDeviceElement.appendChild(newDigitalStatusElement);
+            newDeviceElement.appendChild(newAlarmLimitsElement);
+            devicesContainer.appendChild(newDeviceElement);
+
+            // Storing the element allows us to not query the DOM
+            // every time we need to modify them
+            deviceElements[device] = newReadingElement;
+        });
+
+        const alarmLimits = {};
+        const isAlarming = (device, reading) => {
+            return alarmLimits[device]
+                && (reading > alarmLimits[device].maximum
+                    || reading < alarmLimits[device].minimum);
+        }
+
+        const handleData = (reading, info) => {
+            // Other formats may be used .toPrecision looks best to me
+            const formattedReading = reading.data.toPrecision(4);
+
+            deviceElements[info.name].innerText = `${info.name}: ${formattedReading} ${info.units}`;
+
+            if (isAlarming(info.name, reading.data)) {
+                if (!deviceElements[info.name].classList.contains(`alarm`)) {
+                    deviceElements[info.name].classList.add(`alarm`);
+                }
+            } else {
+                deviceElements[info.name].classList.remove(`alarm`);
+            }
+        };
+
+        const handleAlarmData = (reading, info) => {
+            const { minimum, maximum } = reading;
+            alarmLimits[info.name] = { minimum, maximum };
+        };
+
+        deviceList.forEach(device => {
+            dpm.addRequest(`${device}${event}`, handleData);
+            dpm.addRequest(`${device}.ANALOG_ALARM${event}`, handleAlarmData);
+        });
+
+        dpm.start();
+    </script>
+</body>
+
+</html>

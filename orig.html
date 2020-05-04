@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <script src="https://www-bd.fnal.gov/acnet/acnet-1.4.js"></script>
+    <script src="https://www-bd.fnal.gov/acnet/proto_lib-2.0.js"></script>
+    <script src="https://www-bd.fnal.gov/acnet/dpm_protocol-2.0.js"></script>
+    <script src="https://www-bd.fnal.gov/acnet/dpm-2.0.js"></script>
+</head>
+<style>
+    div.a {
+        font-size: 15px;
+    }
+</style>
+
+<div class="bg">
+    <div class="a" id="zero">
+        <a id="0">------</a><br>
+        <a href="" target="_blank" id="dl0">--</a><br>
+        <a href="" target="_blank" id="ds0">--</a><br>
+        <a href="" target="_blank" id="al0">--</a><br>
+        <br>
+    </div>
+
+    <div class="a" id="one">
+        <a id="1">------</a><br>
+        <a href="" target="_blank" id="dl1">--</a><br>
+        <a href="" target="_blank" id="ds1">--</a><br>
+        <a href="" target="_blank" id="al1">--</a><br>
+        <br>
+    </div>
+
+    <div class="a" id="two">
+        <a id="2">------</a><br>
+        <a href="" target="_blank" id="dl2">--</a><br>
+        <a href="" target="_blank" id="ds2">--</a><br>
+        <a href="" target="_blank" id="al2">--</a><br>
+        <br>
+    </div>
+
+    <div class="a" id="three">
+        <a id="3">------</a><br>
+        <a href="" target="_blank" id="dl3">--</a><br>
+        <a href="" target="_blank" id="ds3">--</a><br>
+        <a href="" target="_blank" id="al3">--</a><br>
+        <br>
+    </div>
+
+    <div class="a" id="four">
+        <a id="4">------</a><br>
+        <a href="" target="_blank" id="dl4">--</a><br>
+        <a href="" target="_blank" id="ds4">--</a><br>
+        <a href="" target="_blank" id="al4">--</a><br>
+        <br>
+    </div>
+</div>
+
+<body onload="myMain()">
+
+    <script>
+        var dev = ["B:IP111", "B:IP112", "M:OUTTMP", "D:OUTTMP", "B:IPMP02"];
+        var evt = ["@e,8f,h", "@e,8f,h", "@e,8f,h", "@e,8f,h", "@e,8f,h"];
+        var a = ["0", "1", "2", "3", "4"];
+        function myMain() {
+            try { var dpm = new DPM(); }
+            catch (e) { alert(e + " \n\nMust use VPN on your current network"); }
+
+            start_dpm();
+
+            function start_dpm() {
+                for (var i = 0; i < dev.length; i++) {
+                    dpm.addRequest(dev[i] + evt[i], update);
+                    dpm.start();
+                    document.getElementById(a[i]).id = dev[i];
+                }
+                function update(reading, info) {
+                    console.log(info);
+                    for (var i = 0; i < dev.length; i++) {
+                        var dl = "dl" + a[i];
+                        var ds = "ds" + a[i];
+                        var al = "al" + a[i];
+                        if (info.name == dev[i]) {
+
+                            if (reading.data < .000001) {
+                                var val = reading.data.toFixed(11);
+                            }
+                            else if (reading.data < .01) {
+                                var val = reading.data.toFixed(6);
+                            }
+                            else {
+                                var val = reading.data.toFixed(2);
+                            }
+                            document.getElementById(dev[i]).innerHTML = dev[i] + ": " + parseFloat(val) + " " + info.units;
+                            document.getElementById(dl).innerHTML = "Datalog " + dev[i];
+                            document.getElementById(dl).href = "https://www-bd.fnal.gov/cgi-bin/mcr.pl?query=px&web=yes&dur=24&dev=" + dev[i];
+                            document.getElementById(ds).innerHTML = "Digital Status " + dev[i];
+                            document.getElementById(ds).href = "https://www-ad.fnal.gov/cgi-bin/acl.pl?acl=~kissel/acl/show.acl+dig+0+" + dev[i];
+                            document.getElementById(al).innerHTML = "Alarm Limits " + dev[i];
+                            document.getElementById(al).href = "https://www-bd.fnal.gov/cgi-bin/acl.pl?acl=print+'Min: '" + dev[i] + ".min++', Max: '" + dev[i] + ".max";
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!--<a href='https://www-bd.fnal.gov/cgi-bin/acl.pl?acl=@/export/home1/pdowdle/acl/testDevice.acl'>Click here!</a>-->
+</body>
+
+</html>
