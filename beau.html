@@ -124,9 +124,17 @@
             alarmLimits[info.name] = { minimum, maximum };
         };
 
+        const handleError = (error, error2) => {
+            console.log(error2);
+            const deviceContainer = document.querySelector(`#IQXRMI`);
+            const alarmElement = deviceContainer.querySelector(`.alarmLimits`);
+            
+            alarmElement.innerText += ` ${new Status(error.status)}`;
+        };
+
         deviceList.forEach(device => {
             dpm.addRequest(`${device}${event}`, handleData);
-            dpm.addRequest(`${device}.ANALOG_ALARM${event}`, handleAlarmData);
+            dpm.addRequest(`${device}.ANALOG_ALARM${event}`, handleAlarmData, handleError);
         });
 
         dpm.start();
