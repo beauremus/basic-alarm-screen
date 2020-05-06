@@ -45,7 +45,7 @@
         const createDeviceElement = (device) => {
             const newDeviceElement = document.createElement(`div`);
             newDeviceElement.className = `device`;
-            newDeviceElement.id = device;
+            newDeviceElement.id = device.replace(`:`, ``);
 
             return newDeviceElement;
         }
